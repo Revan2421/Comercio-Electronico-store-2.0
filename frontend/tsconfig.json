@@ -24,7 +24,9 @@
     },
     "include": [
         ".",
-        "components"
+        "components",
+        "pages",
+        "config"
     ],
     "references": [
         {

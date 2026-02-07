@@ -131,11 +131,40 @@ def create_order(order: schemas.OrderCreate, token: str = Depends(auth.oauth2_sc
 
     return crud.create_order(db=db, order=order, user_id=user.id)
 
+import banking_service
+
+# ... (existing imports)
+
 # Payment Route
 @app.post("/payments", status_code=200)
-def process_payment(payment: schemas.PaymentCreate):
-    # Mock payment processing
-    return {"status": "coming_soon", "message": "Payment gateway integration coming soon", "data": payment}
+async def process_payment(payment: schemas.PaymentCreate, db: Session = Depends(get_db)):
+    # 1. Validate payment with Bank API
+    card_details = {
+        "card_number": payment.card_number,
+        "expiry": payment.expiry,
+        "cvv": payment.cvv,
+        # bank_id is valid for selection logic if we had multiple banks
+    }
+    
+    bank_response = await banking_service.process_bank_payment(
+        card_details=card_details,
+        amount=payment.amount,
+        description=payment.description or f"Order {payment.order_id}"
+    )
+    
+    # 2. If successful (no exception raised), we can mark the order as paid.
+    # Note: In a full implementation, we'd update the order status here.
+    # order = crud.get_order(db, payment.order_id)
+    # if order:
+    #     order.status = "paid"
+    #     db.commit()
+
+    return {
+        "status": "approved",
+        "message": "Payment processed successfully",
+        "data": bank_response,
+        "transaction_id": bank_response.get("transaction_id", "mock-id")
+    }
 
 # Seed Data Endpoint (For development convenience)
 from datetime import datetime

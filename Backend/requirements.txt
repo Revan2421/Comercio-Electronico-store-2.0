@@ -10,3 +10,4 @@ python-multipart
 python-dotenv
 gunicorn
 uvicorn
+httpx

@@ -81,4 +81,8 @@ class Order(BaseModel):
 class PaymentCreate(BaseModel):
     order_id: int
     amount: float
-    # In a real integration, we might receive a token from Stripe/PayPal
+    card_number: str
+    cvv: str
+    expiry: str
+    bank_id: str
+    description: Optional[str] = "Payment for order"

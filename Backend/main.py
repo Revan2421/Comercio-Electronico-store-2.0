@@ -17,8 +17,7 @@ app = FastAPI()
 import os
 
 # Bank API Configuration (Environment Variables)
-# These are used in banking_service.py, but declared here for visibility/startup check
-BANK_API_URL_CREDITBANK = os.getenv("https://core-banking-service-6pup.onrender.com/payments/card", "http://localhost:80")
+BANK_API_URL_CREDITBANK = os.getenv("BANK_API_URL_CREDITBANK", "http://localhost:8002")
 MERCHANT_ACCOUNT_CREDITBANK = os.getenv("MERCHANT_ACCOUNT_CREDITBANK", "creditbank_merchant_id")
 
 BANK_API_URL_CIENSPAY = os.getenv("BANK_API_URL_CIENSPAY", "http://localhost:8003")
@@ -174,12 +173,12 @@ async def process_payment(payment: schemas.PaymentCreate, db: Session = Depends(
         description=payment.description or f"Order {payment.order_id}"
     )
     
-    # 2. If successful (no exception raised), we can mark the order as paid.
-    # Note: In a full implementation, we'd update the order status here.
-    # order = crud.get_order(db, payment.order_id)
-    # if order:
-    #     order.status = "paid"
-    #     db.commit()
+    # 2. If successful (no exception raised), we mark the order as paid.
+    order = crud.get_order(db, payment.order_id)
+    if order:
+        order.status = "paid"
+        db.commit()
+        db.refresh(order)
 
     return {
         "status": "approved",

@@ -31,37 +31,73 @@ export default function Checkout() {
             return;
         }
 
+        const token = localStorage.getItem('token');
+        if (!token) {
+            toast.error('Debes iniciar sesión para realizar la compra');
+            navigate('/dashboard'); // Or login route
+            return;
+        }
+
         setIsProcessing(true);
 
         try {
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-            const payload = {
-                order_id: 0, // In a real flow, create order first or handle backend-side
-                amount: total,
+
+            // 1. Create Order
+            const orderPayload = {
+                items: cart.map(item => ({
+                    product_id: item.id,
+                    quantity: item.quantity
+                }))
+            };
+
+            const orderResponse = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(orderPayload)
+            });
+
+            if (!orderResponse.ok) {
+                const errorData = await orderResponse.json();
+                throw new Error(errorData.detail || 'Error al crear la orden');
+            }
+
+            const orderData = await orderResponse.json();
+            const orderId = orderData.id;
+
+            // 2. Process Payment with the new Order ID
+            const paymentPayload = {
+                order_id: orderId,
+                amount: total, // Backend should verify this matches order total, but for now we send it
                 card_number: (document.getElementById('card-number') as HTMLInputElement).value.replace(/\s/g, ''),
                 cvv: (document.getElementById('card-cvv') as HTMLInputElement).value,
                 expiry: (document.getElementById('card-expiry') as HTMLInputElement).value,
                 bank_id: selectedBank.id,
-                description: `Purchase of ${cart.length} items`
+                description: `Compra de ${cart.length} productos (Orden #${orderId})`
             };
 
-            const response = await fetch(`${API_URL}/payments`, {
+            const paymentResponse = await fetch(`${API_URL}/payments`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(payload),
+                body: JSON.stringify(paymentPayload),
             });
 
-            const data = await response.json();
+            const paymentData = await paymentResponse.json();
 
-            if (!response.ok) {
-                throw new Error(data.detail || 'Error processing payment');
+            if (!paymentResponse.ok) {
+                throw new Error(paymentData.detail || 'Error processing payment');
             }
 
             toast.success(`¡Pago procesado con éxito a través de ${selectedBank.name}!`);
             clearCart();
-            navigate('/dashboard');
+            // Optional: Redirect to an "Order Success" page instead of dashboard
+            navigate('/dashboard'); 
         } catch (error: any) {
             console.error('Payment Error:', error);
             toast.error(error.message || 'Error al procesar el pago. Revisa los datos.');

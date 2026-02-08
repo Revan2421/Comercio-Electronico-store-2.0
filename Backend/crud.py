@@ -66,3 +66,6 @@ def update_user(db: Session, db_user: models.User, user_update: schemas.UserUpda
 
 def get_user_orders(db: Session, user_id: int):
     return db.query(models.Order).filter(models.Order.user_id == user_id).order_by(models.Order.created_at.desc()).all()
+
+def get_order(db: Session, order_id: int):
+    return db.query(models.Order).filter(models.Order.id == order_id).first()

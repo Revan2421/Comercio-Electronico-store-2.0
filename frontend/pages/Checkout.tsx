@@ -20,8 +20,33 @@ export default function Checkout() {
 
     if (cart.length === 0 && !isProcessing) {
         navigate('/products');
-        return null;
+        return null; // Don't render if cart is empty
     }
+
+    const [cardNumber, setCardNumber] = useState('');
+    const [cardExpiry, setCardExpiry] = useState('');
+    const [cardCvv, setCardCvv] = useState('');
+
+    const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Remove non-digits to process
+        const rawValue = e.target.value.replace(/\D/g, '');
+        // Limit to 24 digits
+        const truncated = rawValue.slice(0, 24);
+        // Add spaces every 4 digits
+        const formatted = truncated.replace(/(\d{4})(?=\d)/g, '$1 ');
+        setCardNumber(formatted);
+    };
+
+    const handleExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let rawValue = e.target.value.replace(/\D/g, '');
+        if (rawValue.length > 4) rawValue = rawValue.slice(0, 4);
+
+        if (rawValue.length >= 2) {
+            setCardExpiry(`${rawValue.slice(0, 2)}/${rawValue.slice(2)}`);
+        } else {
+            setCardExpiry(rawValue);
+        }
+    };
 
     const handlePayment = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -71,10 +96,11 @@ export default function Checkout() {
             // 2. Process Payment with the new Order ID
             const paymentPayload = {
                 order_id: orderId,
-                amount: total, // Backend should verify this matches order total, but for now we send it
-                card_number: (document.getElementById('card-number') as HTMLInputElement).value.replace(/\s/g, ''),
-                cvv: (document.getElementById('card-cvv') as HTMLInputElement).value,
-                expiry: (document.getElementById('card-expiry') as HTMLInputElement).value,
+                amount: total,
+                // Send value as-is (with spaces) as requested
+                card_number: cardNumber,
+                cvv: cardCvv,
+                expiry: cardExpiry,
                 bank_id: selectedBank.id,
                 description: `Compra de ${cart.length} productos (Orden #${orderId})`
             };
@@ -97,7 +123,7 @@ export default function Checkout() {
             toast.success(`¡Pago procesado con éxito a través de ${selectedBank.name}!`);
             clearCart();
             // Optional: Redirect to an "Order Success" page instead of dashboard
-            navigate('/dashboard'); 
+            navigate('/dashboard');
         } catch (error: any) {
             console.error('Payment Error:', error);
             toast.error(error.message || 'Error al procesar el pago. Revisa los datos.');
@@ -105,6 +131,8 @@ export default function Checkout() {
             setIsProcessing(false);
         }
     };
+
+    // ... (render part) ...
 
     return (
         <div className="container mx-auto px-4 py-12 max-w-6xl">
@@ -155,12 +183,10 @@ export default function Checkout() {
                                                 className="flex flex-col items-center p-6 border-2 border-transparent bg-white rounded-xl shadow-sm hover:shadow-md hover:border-indigo-600 transition-all group w-full md:w-[calc(50%-0.5rem)]"
                                             >
                                                 <div className="h-12 w-full flex items-center justify-center mb-3">
-                                                    {/* Placeholder logic for images if needed, using text fallback for now */}
                                                     <div className="text-xl font-bold text-gray-700 group-hover:text-indigo-600">
                                                         {bank.name}
                                                     </div>
                                                 </div>
-                                                {/* Text removed */}
                                             </button>
                                         ))}
                                     </div>
@@ -181,11 +207,13 @@ export default function Checkout() {
                                             <div className="relative">
                                                 <Input
                                                     id="card-number"
-                                                    placeholder="0000 0000 0000 0000"
-                                                    maxLength={19}
+                                                    value={cardNumber}
+                                                    onChange={handleCardNumberChange}
+                                                    placeholder="0000 0000 0000 0000 0000 0000"
+                                                    maxLength={29} // 24 digits + 5 spaces
                                                     required
                                                     disabled={isProcessing}
-                                                    className="pr-10"
+                                                    className="pr-10 font-mono"
                                                 />
                                                 <CreditCard className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                                             </div>
@@ -194,11 +222,27 @@ export default function Checkout() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="card-expiry">Fecha de expiración</Label>
-                                                <Input id="card-expiry" placeholder="MM/YY" maxLength={5} required disabled={isProcessing} />
+                                                <Input
+                                                    id="card-expiry"
+                                                    value={cardExpiry}
+                                                    onChange={handleExpiryChange}
+                                                    placeholder="MM/YY"
+                                                    maxLength={5}
+                                                    required
+                                                    disabled={isProcessing}
+                                                />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="card-cvv">CVV</Label>
-                                                <Input id="card-cvv" placeholder="123" maxLength={4} required disabled={isProcessing} />
+                                                <Input
+                                                    id="card-cvv"
+                                                    value={cardCvv}
+                                                    onChange={(e) => setCardCvv(e.target.value.slice(0, 4))}
+                                                    placeholder="123"
+                                                    maxLength={4}
+                                                    required
+                                                    disabled={isProcessing}
+                                                />
                                             </div>
                                         </div>
 
@@ -209,8 +253,8 @@ export default function Checkout() {
                                     </form>
                                 )}
                             </CardContent>
-                            <CardFooter>
-                                {selectedBank && (
+                            {selectedBank && (
+                                <CardFooter>
                                     <Button
                                         form="payment-form"
                                         className="w-full h-12 text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg"
@@ -225,8 +269,8 @@ export default function Checkout() {
                                             `Pagar $${total.toFixed(2)}`
                                         )}
                                     </Button>
-                                )}
-                            </CardFooter>
+                                </CardFooter>
+                            )}
                         </Card>
                     </motion.div>
                 </div>

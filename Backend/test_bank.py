@@ -16,11 +16,11 @@ async def test_connection():
     load_dotenv()
     print("Probando conexión con el banco...")
     
-    # Datos de prueba (Usa una tarjeta de prueba si el banco lo permite)
+    # Datos de prueba (Usa una tarjeta de prueba DIFERENTE a la cuenta de destino)
     card_details = {
-        "card_number": "5278232456294482",
-        "expiry": "05/31",
-        "cvv": "532"
+        "card_number": "1234567812345678", # Tarjeta "Cliente"
+        "expiry": "12/28",
+        "cvv": "123"
     }
     
     try:

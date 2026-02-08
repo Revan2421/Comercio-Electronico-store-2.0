@@ -18,7 +18,7 @@ import os
 
 # Bank API Configuration (Environment Variables)
 # These are used in banking_service.py, but declared here for visibility/startup check
-BANK_API_URL_CREDITBANK = os.getenv("BANK_API_URL_CREDITBANK", "http://localhost:8002")
+BANK_API_URL_CREDITBANK = os.getenv("https://core-banking-service-6pup.onrender.com/payments/card", "http://localhost:80")
 MERCHANT_ACCOUNT_CREDITBANK = os.getenv("MERCHANT_ACCOUNT_CREDITBANK", "creditbank_merchant_id")
 
 BANK_API_URL_CIENSPAY = os.getenv("BANK_API_URL_CIENSPAY", "http://localhost:8003")

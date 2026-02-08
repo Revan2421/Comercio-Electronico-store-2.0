@@ -10,12 +10,14 @@ import { CreditCard, ShieldCheck, ArrowLeft, Loader2, Building2 } from 'lucide-r
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { SUPPORTED_BANKS, Bank } from '../config/banks';
+import { AuthDialog } from '../components/AuthDialog';
 
 export default function Checkout() {
     const { cart, getTotalPrice, clearCart, user } = useShop();
     const navigate = useNavigate();
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedBank, setSelectedBank] = useState<Bank | null>(null);
+    const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
     const total = getTotalPrice();
 
     if (cart.length === 0 && !isProcessing) {
@@ -179,7 +181,14 @@ export default function Checkout() {
                                         {SUPPORTED_BANKS.map((bank) => (
                                             <button
                                                 key={bank.id}
-                                                onClick={() => setSelectedBank(bank)}
+                                                onClick={() => {
+                                                    if (!user) {
+                                                        setIsAuthDialogOpen(true);
+                                                        toast.info('Inicia sesión para continuar con tu compra');
+                                                        return;
+                                                    }
+                                                    setSelectedBank(bank);
+                                                }}
                                                 className="flex flex-col items-center p-6 border-2 border-transparent bg-white rounded-xl shadow-sm hover:shadow-md hover:border-indigo-600 transition-all group w-full md:w-[calc(50%-0.5rem)]"
                                             >
                                                 <div className="h-12 w-full flex items-center justify-center mb-3">
@@ -326,6 +335,7 @@ export default function Checkout() {
                     </motion.div>
                 </div>
             </div>
+            <AuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen} />
         </div>
     );
 }

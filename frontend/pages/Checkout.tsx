@@ -111,12 +111,12 @@ export default function Checkout() {
                             </CardHeader>
                             <CardContent>
                                 {!selectedBank ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="flex flex-wrap justify-center gap-4">
                                         {SUPPORTED_BANKS.map((bank) => (
                                             <button
                                                 key={bank.id}
                                                 onClick={() => setSelectedBank(bank)}
-                                                className="flex flex-col items-center p-6 border-2 border-transparent bg-white rounded-xl shadow-sm hover:shadow-md hover:border-indigo-600 transition-all group"
+                                                className="flex flex-col items-center p-6 border-2 border-transparent bg-white rounded-xl shadow-sm hover:shadow-md hover:border-indigo-600 transition-all group w-full md:w-[calc(50%-0.5rem)]"
                                             >
                                                 <div className="h-12 w-full flex items-center justify-center mb-3">
                                                     {/* Placeholder logic for images if needed, using text fallback for now */}
@@ -124,7 +124,7 @@ export default function Checkout() {
                                                         {bank.name}
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-gray-400">Procesado por API segura</div>
+                                                {/* Text removed */}
                                             </button>
                                         ))}
                                     </div>

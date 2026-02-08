@@ -3,6 +3,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import crud, models, schemas, auth, database
 
 models.Base.metadata.create_all(bind=database.engine)
@@ -11,6 +15,23 @@ app = FastAPI()
 
 # CORS configuration
 import os
+
+# Bank API Configuration (Environment Variables)
+# These are used in banking_service.py, but declared here for visibility/startup check
+BANK_API_URL_CREDITBANK = os.getenv("BANK_API_URL_CREDITBANK", "http://localhost:8002")
+MERCHANT_ACCOUNT_CREDITBANK = os.getenv("MERCHANT_ACCOUNT_CREDITBANK", "creditbank_merchant_id")
+
+BANK_API_URL_CIENSPAY = os.getenv("BANK_API_URL_CIENSPAY", "http://localhost:8003")
+MERCHANT_ACCOUNT_CIENSPAY = os.getenv("MERCHANT_ACCOUNT_CIENSPAY", "cienspay_merchant_id")
+
+BANK_API_URL_BANCOBSIDIANA = os.getenv("BANK_API_URL_BANCOBSIDIANA", "http://localhost:8004")
+MERCHANT_ACCOUNT_BANCOBSIDIANA = os.getenv("MERCHANT_ACCOUNT_BANCOBSIDIANA", "bancobsidiana_merchant_id")
+
+print(f"Loaded Bank Configs:")
+print(f"CreditBank: {BANK_API_URL_CREDITBANK} / {MERCHANT_ACCOUNT_CREDITBANK}")
+print(f"CiensPay: {BANK_API_URL_CIENSPAY} / {MERCHANT_ACCOUNT_CIENSPAY}")
+print(f"BancObsidiana: {BANK_API_URL_BANCOBSIDIANA} / {MERCHANT_ACCOUNT_BANCOBSIDIANA}")
+
 raw_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 allowed_origins = []
 for o in raw_origins:
@@ -149,6 +170,7 @@ async def process_payment(payment: schemas.PaymentCreate, db: Session = Depends(
     bank_response = await banking_service.process_bank_payment(
         card_details=card_details,
         amount=payment.amount,
+        bank_id=payment.bank_id,
         description=payment.description or f"Order {payment.order_id}"
     )
     

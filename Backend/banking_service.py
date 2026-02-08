@@ -2,13 +2,45 @@ import httpx
 import os
 from fastapi import HTTPException
 
-async def process_bank_payment(card_details: dict, amount: float, description: str = "Payment for order"):
+# Configuration for supported banks
+# Maps bank_id to environment variable keys for URL and Merchant Account
+BANK_CONFIG = {
+    "bank_a": {
+        "url_env": "BANK_API_URL_CREDITBANK",
+        "account_env": "MERCHANT_ACCOUNT_CREDITBANK",
+        "default_url": "http://localhost:8002",
+        "default_account": "creditbank_merchant_id"
+    },
+    "bank_b": {
+        "url_env": "BANK_API_URL_CIENSPAY",
+        "account_env": "MERCHANT_ACCOUNT_CIENSPAY",
+        "default_url": "http://localhost:8003",
+        "default_account": "cienspay_merchant_id"
+    },
+    "bank_c": {
+        "url_env": "BANK_API_URL_BANCOBSIDIANA",
+        "account_env": "MERCHANT_ACCOUNT_BANCOBSIDIANA",
+        "default_url": "http://localhost:8004",
+        "default_account": "bancobsidiana_merchant_id"
+    }
+}
+
+async def process_bank_payment(card_details: dict, amount: float,  bank_id: str, description: str = "Payment for order"):
     """
     Validates and processes payment with the external Bank API.
     """
-    # Get configuration from environment variables
-    BANK_API_URL = os.getenv("BANK_API_URL", "http://localhost:8002")
-    MERCHANT_ACCOUNT_ID = os.getenv("MERCHANT_ACCOUNT_ID", "1234567890")
+    
+    if bank_id not in BANK_CONFIG:
+        raise HTTPException(status_code=400, detail="Invalid bank selected")
+
+    config = BANK_CONFIG[bank_id]
+    
+    # Get configuration from environment variables with fallbacks
+    BANK_API_URL = os.getenv(config["url_env"], config["default_url"])
+    MERCHANT_ACCOUNT_ID = os.getenv(config["account_env"], config["default_account"])
+
+    if not BANK_API_URL:
+        raise HTTPException(status_code=500, detail=f"Configuration error: Missing API URL for {bank_id}")
 
     # Construct the payload for the Bank API
     # Endpoint: POST /payments/card
@@ -18,8 +50,11 @@ async def process_bank_payment(card_details: dict, amount: float, description: s
         "cvv": card_details.get("cvv"),
         "amount": amount,
         "description": description,
-        "destination_account": MERCHANT_ACCOUNT_ID
+        "destination_account": MERCHANT_ACCOUNT_ID,
+        "merchant_id": MERCHANT_ACCOUNT_ID # Some APIs might expect one or the other
     }
+
+    print(f"Processing payment for {bank_id} at {BANK_API_URL} with merchant {MERCHANT_ACCOUNT_ID}")
 
     try:
         async with httpx.AsyncClient() as client:
@@ -49,7 +84,8 @@ async def process_bank_payment(card_details: dict, amount: float, description: s
     except httpx.RequestError as e:
         # Handle connection errors
         print(f"Bank Connection Error: {str(e)}")
-        raise HTTPException(status_code=503, detail="Payment service unavailable")
+        # For development/university project, give a more helpful error
+        raise HTTPException(status_code=503, detail=f"Could not connect to Bank API at {BANK_API_URL}. Is the bank server running?")
     except Exception as e:
         print(f"Payment Processing Error: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal payment processing error")

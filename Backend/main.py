@@ -191,10 +191,6 @@ from datetime import datetime
 @app.post("/seed_products")
 def seed_products(db: Session = Depends(get_db)):
     try:
-        # Clear existing products to ensure clean categories
-        db.query(models.Product).delete()
-        db.commit()
-        
         mock_products = [
             # Laptops & Work (8)
             {"name": "MacBook Pro 16 M3", "price": 699.99, "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=800&q=80", "description": "Potencia bruta para profesionales", "category": "Laptops & Work"},
@@ -238,9 +234,21 @@ def seed_products(db: Session = Depends(get_db)):
         ]
     
         for p in mock_products:
-            crud.create_product(db, schemas.ProductCreate(**p))
+            # Check if product exists by name
+            existing_product = db.query(models.Product).filter(models.Product.name == p["name"]).first()
+            
+            if existing_product:
+                # Update existing product
+                existing_product.price = p["price"]
+                existing_product.image = p["image"]
+                existing_product.description = p["description"]
+                existing_product.category = p["category"]
+            else:
+                # Create new product
+                crud.create_product(db, schemas.ProductCreate(**p))
         
-        return {"message": "Data seeded successfully"}
+        db.commit()
+        return {"message": "Data seeded/updated successfully"}
     except Exception as e:
         import traceback
         traceback.print_exc()

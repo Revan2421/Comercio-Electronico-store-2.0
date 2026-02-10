@@ -16,7 +16,6 @@ app = FastAPI()
 # CORS configuration
 import os
 
-# Bank API Configuration is handled in banking_service.py
 
 raw_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 allowed_origins = []
@@ -166,6 +165,14 @@ async def process_payment(payment: schemas.PaymentCreate, db: Session = Depends(
         order.status = "paid"
         db.commit()
         db.refresh(order)
+        
+        # 3. Create Payment Record
+        crud.create_payment(
+            db=db, 
+            payment=payment, 
+            status="approved", 
+            provider=payment.bank_id
+        )
 
     return {
         "status": "approved",

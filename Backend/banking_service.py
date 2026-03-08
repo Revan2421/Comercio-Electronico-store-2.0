@@ -17,7 +17,7 @@ BANK_CONFIG = {
         "account_env": "MERCHANT_ACCOUNT_CIENSPAY",
         "default_url": "http://localhost:8003",
         "default_account": "cienspay_merchant_id",
-        "endpoint": "/payments/card"
+        "endpoint": "/api/transactions/simulate/"
     },
     "bank_c": {
         "url_env": "BANK_API_URL_BANCOBSIDIANA",

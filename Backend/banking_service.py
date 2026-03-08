@@ -9,19 +9,22 @@ BANK_CONFIG = {
         "url_env": "BANK_API_URL_CREDITBANK",
         "account_env": "MERCHANT_ACCOUNT_CREDITBANK",
         "default_url": "http://localhost:8002",
-        "default_account": "creditbank_merchant_id"
+        "default_account": "creditbank_merchant_id",
+        "endpoint": "/payments/card"
     },
     "bank_b": {
         "url_env": "BANK_API_URL_CIENSPAY",
         "account_env": "MERCHANT_ACCOUNT_CIENSPAY",
         "default_url": "http://localhost:8003",
-        "default_account": "cienspay_merchant_id"
+        "default_account": "cienspay_merchant_id",
+        "endpoint": "/payments/card"
     },
     "bank_c": {
         "url_env": "BANK_API_URL_BANCOBSIDIANA",
         "account_env": "MERCHANT_ACCOUNT_BANCOBSIDIANA",
         "default_url": "http://localhost:8004",
-        "default_account": "bancobsidiana_merchant_id"
+        "default_account": "bancobsidiana_merchant_id",
+        "endpoint": "/api/v1/transaction/process"
     }
 }
 
@@ -61,12 +64,14 @@ async def process_bank_payment(card_details: dict, amount: float,  bank_id: str,
 
     try:
         async with httpx.AsyncClient() as client:
-            # We assume the external API expects the payload at /payments/card
-            endpoint = "/payments/card"
-            if BANK_API_URL.endswith('/'):
+            # We use the specific endpoint from the bank configuration
+            endpoint = config.get("endpoint", "")
+            if endpoint and BANK_API_URL.endswith('/'):
                 full_url = BANK_API_URL[:-1] + endpoint
-            else:
+            elif endpoint:
                 full_url = BANK_API_URL + endpoint
+            else:
+                full_url = BANK_API_URL
 
             print(f"Sending POST to: {full_url}")
             

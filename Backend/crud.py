@@ -69,3 +69,15 @@ def get_user_orders(db: Session, user_id: int):
 
 def get_order(db: Session, order_id: int):
     return db.query(models.Order).filter(models.Order.id == order_id).first()
+
+def create_payment(db: Session, payment: schemas.PaymentCreate, status: str = "success", provider: str = "manual"):
+    db_payment = models.Payment(
+        order_id=payment.order_id,
+        amount=payment.amount,
+        status=status,
+        provider=provider
+    )
+    db.add(db_payment)
+    db.commit()
+    db.refresh(db_payment)
+    return db_payment

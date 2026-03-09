@@ -63,7 +63,6 @@ async def process_bank_payment(card_details: dict, amount: float,  bank_id: str,
             "expiry_date": card_details.get("expiry"),
             "cvv": card_details.get("cvv"),
             "amount": str(amount),
-            "description": description
         }
     else:
         payload = {

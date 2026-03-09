@@ -51,15 +51,30 @@ async def process_bank_payment(card_details: dict, amount: float,  bank_id: str,
         raise HTTPException(status_code=500, detail=f"Server Configuration Error: Merchant ID not set for {bank_id}")
 
 
-    payload = {
-        "card_number": card_details.get("card_number"),
-        "expiry": card_details.get("expiry"),
-        "cvv": card_details.get("cvv"),
-        "amount": amount,
-        "description": description,
-        "destination_account": MERCHANT_ACCOUNT_ID,
-        "merchant_id": MERCHANT_ACCOUNT_ID 
-    }
+    card_number = card_details.get("card_number")
+    if isinstance(card_number, str):
+        card_number = card_number.replace(" ", "").replace("-", "")
+
+    if bank_id == "bank_b":
+        payload = {
+            "button_bank_external": False,
+            "bank_identifier": "cienspay",
+            "card_number": card_number,
+            "expiry_date": card_details.get("expiry"),
+            "cvv": card_details.get("cvv"),
+            "amount": str(amount),
+            "description": description
+        }
+    else:
+        payload = {
+            "card_number": card_number,
+            "expiry": card_details.get("expiry"),
+            "cvv": card_details.get("cvv"),
+            "amount": amount,
+            "description": description,
+            "destination_account": MERCHANT_ACCOUNT_ID,
+            "merchant_id": MERCHANT_ACCOUNT_ID 
+        }
 
     print(f"--- Processing payment for {bank_id} ---")
     print(f"Bank API URL: {BANK_API_URL}")

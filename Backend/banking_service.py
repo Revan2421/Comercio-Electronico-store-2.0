@@ -74,6 +74,7 @@ class CreditBankAdapter(BankAdapter):
             "cvv": card_details.get("cvv"),
             "amount": amount,
             "description": description,
+            "destination_account": merchant_id,
             "merchant_id": merchant_id,
         }
 
@@ -96,6 +97,7 @@ class CiensPayAdapter(BankAdapter):
             "amount": amount,
             "description": description,
             "destination_account": merchant_id,
+            "merchant_id": merchant_id,
             "transaction_type": "PURCHASE",
         }
 
@@ -173,9 +175,9 @@ async def process_bank_payment(
 
     config = BANK_CONFIG[bank_id]
 
-    # Obtener configuración desde variables de entorno (obligatorias en producción)
-    BANK_API_URL = os.getenv(config["url_env"])
-    MERCHANT_ACCOUNT_ID = os.getenv(config["account_env"])
+    # Obtener configuración desde variables de entorno con fallback a valores por defecto
+    BANK_API_URL = os.getenv(config["url_env"], config["default_url"])
+    MERCHANT_ACCOUNT_ID = os.getenv(config["account_env"], config["default_account"])
 
     if not BANK_API_URL:
         print(f"CRITICAL ERROR: Missing environment variable {config['url_env']}")

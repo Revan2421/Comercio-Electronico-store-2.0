@@ -58,7 +58,7 @@ async def process_bank_payment(card_details: dict, amount: float,  bank_id: str,
     if bank_id == "bank_b":
         payload = {
             "button_bank_external": False,
-            "bank_identifier": "cienspay",
+            "bank_identifier": MERCHANT_ACCOUNT_ID,
             "card_number": card_number,
             "expiry_date": card_details.get("expiry"),
             "cvv": card_details.get("cvv"),

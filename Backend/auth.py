@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -7,10 +8,10 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 import models, database
 
-# SECRET KEY should be in environment variables
-SECRET_KEY = "SECRET_KEY_GOES_HERE" 
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+# Configuración cargada desde variables de entorno
+SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-key-para-desarrollo")
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")

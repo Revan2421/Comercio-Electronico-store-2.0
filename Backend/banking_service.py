@@ -122,9 +122,9 @@ class LegacyBankAdapter(GenericBankAdapter):
 
         # Legacy payload we used to send
         payload = {
-            "card_number": str(card_details.get("card_number", "")).replace(" ", ""),
+            "card_number": card_details.get("card_number"),
             "expiry": card_details.get("expiry"),
-            "cvv": str(card_details.get("cvv", "")),
+            "cvv": card_details.get("cvv"),
             "amount": amount,
             "description": description,
             "destination_account": MERCHANT_ACCOUNT_ID,

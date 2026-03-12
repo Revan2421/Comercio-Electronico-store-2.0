@@ -9,14 +9,13 @@ BANK_CONFIG = {
         "url_env": "BANK_API_URL_CREDITBANK",
         "account_env": "MERCHANT_ACCOUNT_CREDITBANK",
         "default_url": "http://localhost:8002",
-        "default_account": "creditbank_merchant_id",
+        "default_account": "1847192847",
         "endpoint": "/payments/card",
-        "adapter": "legacy"
+        "adapter": "creditbank"
     },
     "bank_b": {
         "url_env": "BANK_API_URL_CIENSPAY",
         "account_env": "MERCHANT_ACCOUNT_CIENSPAY",
-        "identifier_name": "cienspay",
         "endpoint": "/api/transactions/simulate/",
         "adapter": "cienspay"
     },
@@ -24,9 +23,9 @@ BANK_CONFIG = {
         "url_env": "BANK_API_URL_BANCOBSIDIANA",
         "account_env": "MERCHANT_ACCOUNT_BANCOBSIDIANA",
         "default_url": "http://localhost:8004",
-        "default_account": "bancobsidiana_merchant_id",
+        "default_account": "ciens-mart",
         "endpoint": "/api/v1/transaction/process",
-        "adapter": "legacy"
+        "adapter": "bancobsidiana"
     }
 }
 
@@ -35,38 +34,7 @@ class BankAdapter(ABC):
     async def process_payment(self, card_details: dict, amount: float, description: str, bank_id: str, config: dict) -> dict:
         pass
 
-class GenericBankAdapter(BankAdapter):
-    """
-    Adapter for APIs following the standard university project format (like CiensPay).
-    """
-    async def process_payment(self, card_details: dict, amount: float, description: str, bank_id: str, config: dict) -> dict:
-        BANK_API_URL = os.getenv(config["url_env"])
-
-        if not BANK_API_URL:
-            # Check for missing URL env variable
-            print(f"CRITICAL ERROR: Missing environment variable {config['url_env']}")
-            raise HTTPException(status_code=500, detail=f"Server Configuration Error: Bank URL not set for {bank_id}")
-
-        identifier_name = config.get("identifier_name", "cienspay")
-        
-        # Standard payload according to the PDF documentation
-        payload = {
-            "button_bank_external": False,
-            "bank_identifier": identifier_name,
-            "card_number": str(card_details.get("card_number", "")).replace(" ", ""),
-            "expiry_date": card_details.get("expiry"),
-            "cvv": str(card_details.get("cvv", "")),
-            "amount": str(amount),
-            "description": description
-        }
-
-        print(f"--- Processing payment for {bank_id} ({identifier_name}) ---")
-        print(f"Bank API URL: {BANK_API_URL}")
-        print(f"Payload: {payload}")
-
-        return await self._send_request(BANK_API_URL, config.get("endpoint", ""), payload)
-
-    async def _send_request(self, base_url: str, endpoint: str, payload: dict) -> dict:
+    async def _send_request(self, base_url: str, endpoint: str, payload: dict, headers: dict = None) -> dict:
         try:
             async with httpx.AsyncClient() as client:
                 if endpoint and base_url.endswith('/'):
@@ -77,8 +45,8 @@ class GenericBankAdapter(BankAdapter):
                     full_url = base_url
 
                 print(f"Sending POST to: {full_url}")
-                
-                response = await client.post(full_url, json=payload, timeout=15.0)
+                req_headers = headers or {"Content-Type": "application/json"}
+                response = await client.post(full_url, json=payload, headers=req_headers, timeout=15.0)
 
                 print(f"Bank Response Status Code: {response.status_code}")
                 print(f"Bank Response Body: {response.text}")
@@ -109,41 +77,99 @@ class GenericBankAdapter(BankAdapter):
             print(f"Payment Processing Error Traceback: {str(e)}")
             raise HTTPException(status_code=500, detail="Internal payment processing error")
 
-class LegacyBankAdapter(GenericBankAdapter):
-    """
-    Adapter for APIs that still use the old property names
-    """
+
+class CreditBankAdapter(BankAdapter):
+    """Adapter for bank a (CreditBank)"""
     async def process_payment(self, card_details: dict, amount: float, description: str, bank_id: str, config: dict) -> dict:
-        BANK_API_URL = os.getenv(config["url_env"])
-        MERCHANT_ACCOUNT_ID = os.getenv(config["account_env"])
-
+        BANK_API_URL = os.getenv(config["url_env"], config.get("default_url"))
+        MERCHANT_ACCOUNT_ID = os.getenv(config["account_env"], config.get("default_account", "1847192847"))
+        
         if not BANK_API_URL:
-             raise HTTPException(status_code=500, detail=f"Server Configuration Error: Bank URL not set for {bank_id}")
+            raise HTTPException(status_code=500, detail=f"Server Configuration Error: Bank URL not set for {bank_id}")
 
-        # Legacy payload we used to send
+        # JSON exacto para CreditBank (banco a)
         payload = {
-            "card_number": card_details.get("card_number"),
+            "card_number": str(card_details.get("card_number", "")),
             "expiry": card_details.get("expiry"),
-            "cvv": card_details.get("cvv"),
-            "amount": amount,
+            "cvv": str(card_details.get("cvv", "")),
+            "amount": float(amount),
             "description": description,
             "destination_account": MERCHANT_ACCOUNT_ID,
-            "merchant_id": MERCHANT_ACCOUNT_ID 
+            "bank_identifier": "creditbank" 
         }
 
-        print(f"--- Processing legacy payment for {bank_id} ---")
+        print(f"--- Processing payment for CreditBank ---")
         print(f"Bank API URL: {BANK_API_URL}")
         print(f"Payload: {payload}")
+        return await self._send_request(BANK_API_URL, config.get("endpoint", ""), payload)
 
+
+class CiensPayAdapter(BankAdapter):
+    """Adapter for bank b (CiensPay)"""
+    async def process_payment(self, card_details: dict, amount: float, description: str, bank_id: str, config: dict) -> dict:
+        BANK_API_URL = os.getenv(config["url_env"])
+        if not BANK_API_URL:
+            raise HTTPException(status_code=500, detail=f"Server Configuration Error: Bank URL not set for {bank_id}")
+
+        # JSON exacto para CiensPay (banco b)
+        payload = {
+            "button_bank_external": False,
+            "bank_identifier": "cienspay",
+            "card_number": str(card_details.get("card_number", "")),
+            "expiry_date": card_details.get("expiry"),
+            "cvv": str(card_details.get("cvv", "")),
+            "amount": str(amount),
+            "description": description
+        }
+
+        print(f"--- Processing payment for CiensPay ---")
+        print(f"Bank API URL: {BANK_API_URL}")
+        print(f"Payload: {payload}")
+        
+        headers = {"Content-Type": "application/json"}
+        # Agregar el token si está disponible
+        api_token = os.getenv("CIENSPAY_API_TOKEN")
+        if api_token:
+            headers["X-API-Token"] = api_token
+            
+        return await self._send_request(BANK_API_URL, config.get("endpoint", ""), payload, headers=headers)
+
+
+class BancoObsidianaAdapter(BankAdapter):
+    """Adapter for bank c (BancoObsidiana)"""
+    async def process_payment(self, card_details: dict, amount: float, description: str, bank_id: str, config: dict) -> dict:
+        BANK_API_URL = os.getenv(config["url_env"], config.get("default_url"))
+        MERCHANT_ACCOUNT_ID = os.getenv(config["account_env"], config.get("default_account", "ciens-mart"))
+
+        if not BANK_API_URL:
+            raise HTTPException(status_code=500, detail=f"Server Configuration Error: Bank URL not set for {bank_id}")
+
+        # JSON exacto para BancoObsidiana (banco c)
+        payload = {
+            "card_number": str(card_details.get("card_number", "")),
+            "expiry": card_details.get("expiry"),
+            "cvv": str(card_details.get("cvv", "")),
+            "amount": float(amount),
+            "merchant_id": MERCHANT_ACCOUNT_ID,
+            "description": description 
+        }
+
+        print(f"--- Processing payment for BancoObsidiana ---")
+        print(f"Bank API URL: {BANK_API_URL}")
+        print(f"Payload: {payload}")
         return await self._send_request(BANK_API_URL, config.get("endpoint", ""), payload)
 
 
 # Factory to get the right adapter
 def get_bank_adapter(adapter_type: str) -> BankAdapter:
     if adapter_type == "cienspay":
-        return GenericBankAdapter()
+        return CiensPayAdapter()
+    elif adapter_type == "creditbank":
+        return CreditBankAdapter()
+    elif adapter_type == "bancobsidiana":
+        return BancoObsidianaAdapter()
     else:
-        return LegacyBankAdapter()
+        raise ValueError(f"Unknown adapter type: {adapter_type}")
 
 async def process_bank_payment(card_details: dict, amount: float,  bank_id: str, description: str = "Payment for order"):
     """
